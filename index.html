@@ -101,6 +101,14 @@
   .cal-mark { font-family:var(--mono); width:14px; flex:0 0 auto; }
   .cal-rec li.on .cal-mark { color:var(--done); }
   .cal-rec-empty { font-size:12.5px; color:var(--line-strong); }
+  .cal-ho { margin-top:13px; border-top:1px dashed var(--line-strong); padding-top:11px; }
+  .cal-ho-hd { font-size:12px; font-weight:800; color:var(--sch); margin-bottom:8px; }
+  .cal-ho-hd span { font-family:var(--mono); color:var(--muted); font-weight:600; }
+  .cal-ho-item { background:#F2EEF8; border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin-bottom:6px; }
+  .cal-ho-line { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+  .cal-ho-who { font-size:12px; font-weight:700; }
+  .cal-ho-ts { font-family:var(--mono); font-size:11px; color:var(--muted); margin-left:auto; }
+  .cal-ho-body { font-size:13px; color:var(--ink); white-space:pre-wrap; word-break:keep-all; }
   .tab { appearance:none; border:1px solid var(--line-strong); background:var(--card); border-radius:10px; padding:9px 0 7px; cursor:pointer; text-align:center; font-family:var(--sans); color:var(--ink); transition:background .12s ease,border-color .12s ease; }
   .tab:hover { border-color:var(--ink); }
   .tab .kr { display:block; font-size:16px; font-weight:700; }
@@ -874,15 +882,27 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
   }
 
   /* ---------- record calendar (지난 기록) ---------- */
-  function hasRecords(isoD){ function ne(k){ var v=cache[k]; if(!v)return false; try{return JSON.parse(v).length>0;}catch(e){return false;} } return ne("checks:"+isoD+":am")||ne("checks:"+isoD+":pm"); }
+  function hasRecords(isoD){ function ne(k){ var v=cache[k]; if(!v)return false; try{return JSON.parse(v).length>0;}catch(e){return false;} } return ne("checks:"+isoD+":am")||ne("checks:"+isoD+":pm")||handoverForDate(isoD).length>0; }
+  function handoverForDate(isoD){
+    var d=new Date(isoD+"T00:00:00"),mmdd=String(d.getMonth()+1).padStart(2,"0")+"."+String(d.getDate()).padStart(2,"0");
+    return state.handover.filter(function(h){ if(h.date)return h.date===isoD; return typeof h.ts==="string"&&h.ts.indexOf(mmdd+" ")===0; });
+  }
+  function calHandoverHTML(isoD){
+    var list=handoverForDate(isoD); if(!list.length)return "";
+    var items=list.slice().sort(function(a,b){ return String(a.ts||"").localeCompare(String(b.ts||"")); });
+    var h='<div class="cal-ho"><div class="cal-ho-hd">인수인계 <span>'+list.length+'건</span></div>';
+    items.forEach(function(hh){ var cls=hh.shift==="am"?"am":hh.shift==="pm"?"pm":"etc",tx=hh.shift==="am"?"오전":hh.shift==="pm"?"오후":"기타",tp=String(hh.ts||"").split(" ")[1]||""; h+='<div class="cal-ho-item"><div class="cal-ho-line"><span class="ho-tag '+cls+'">'+tx+'</span><span class="cal-ho-who">'+esc(hh.name||"익명")+'</span><span class="cal-ho-ts">'+esc(tp)+'</span></div><div class="cal-ho-body">'+esc(hh.text)+'</div></div>'; });
+    h+='</div>'; return h;
+  }
   function calDetailHTML(isoD){
     var d=new Date(isoD+"T00:00:00"),dow=d.getDay(),title=(d.getMonth()+1)+"월 "+d.getDate()+"일 ("+KR_FULL[dow]+") 기록";
-    if(dow===0||dow===6) return '<div class="cal-detail-title">'+title+'</div><div class="cal-detail-empty">주말 · 근무 없음</div>';
+    if(dow===0||dow===6) return '<div class="cal-detail-title">'+title+'</div><div class="cal-detail-empty">주말 · 근무 없음</div>'+calHandoverHTML(isoD);
     var wd=WD[dow-1].k,h='<div class="cal-detail-title">'+title+'</div>';
     ["am","pm"].forEach(function(sh){ var tasks=state.templates[wd+":"+sh]||[],cv=cache["checks:"+isoD+":"+sh],ids=[]; if(cv){try{ids=JSON.parse(cv);}catch(e){}} var set={}; ids.forEach(function(x){set[x]=1;}); var done=tasks.filter(function(t){return set[t.id];}).length;
       h+='<div class="cal-shift"><div class="cal-shift-hd '+sh+'">'+(sh==="am"?"오전":"오후")+' <span>'+done+" / "+tasks.length+'</span></div>';
       if(!tasks.length){ h+='<div class="cal-rec-empty">업무 없음</div>'; } else { h+='<ul class="cal-rec">'+tasks.map(function(t){var on=!!set[t.id];return '<li class="'+(on?"on":"")+'"><span class="cal-mark">'+(on?"✓":"○")+'</span>'+esc(t.text)+'</li>';}).join("")+'</ul>'; }
       h+='</div>'; });
+    h+=calHandoverHTML(isoD);
     return h;
   }
   function renderCalendar(){
@@ -893,7 +913,7 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
     var wdrow='<div class="cal-wd-row">'+["일","월","화","수","목","금","토"].map(function(w,j){return '<div class="cal-wd'+(j===0?" sun":"")+(j===6?" sat":"")+'">'+w+'</div>';}).join("")+'</div>';
     var grid=cells.map(function(d){ if(!d)return '<div class="cal-cell empty"></div>'; var isoD=iso(d),dow=d.getDay(),we=(dow===0||dow===6),td=isoD===todayISO,sel=state.calSel===isoD,rec=hasRecords(isoD);
       return '<button class="cal-cell'+(we?" weekend":"")+(td?" today":"")+(sel?" sel":"")+'" data-cal="'+isoD+'"'+(we?" disabled":"")+'>'+d.getDate()+(rec?'<span class="cal-dot"></span>':"")+'</button>'; }).join("");
-    var detail=state.calSel?calDetailHTML(state.calSel):'<div class="cal-detail-empty">날짜를 선택하면 그 날의 체크 기록을 볼 수 있어요.</div>';
+    var detail=state.calSel?calDetailHTML(state.calSel):'<div class="cal-detail-empty">날짜를 선택하면 그 날의 체크 기록과 인수인계를 볼 수 있어요.</div>';
     root.innerHTML='<div class="modal-bd" id="calBd"><div class="modal cal-modal"><div class="modal-hd"><span class="mt">기록 달력</span><button class="x" id="calX">✕</button></div><div class="cal-nav"><button class="navbtn" id="calPrev">‹</button><span class="cal-mtitle">'+y+'년 '+mo+'월</span><button class="navbtn" id="calNext">›</button></div><div class="cal-grid">'+wdrow+'<div class="cal-days">'+grid+'</div></div><div class="cal-detail">'+detail+'</div></div></div>';
     var bd=document.getElementById("calBd");
     bd.addEventListener("click",function(e){ if(e.target===bd)closeCal(); });
@@ -1198,7 +1218,7 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
     var text=document.getElementById("hoText").value.trim(); if(!text){document.getElementById("hoText").focus();return;}
     var name=document.getElementById("hoName").value.trim(),shift=document.getElementById("hoShift").value,d=new Date();
     var ts=String(d.getMonth()+1).padStart(2,"0")+"."+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
-    state.handover.unshift({id:uid(),name:name,shift:shift,text:text,ts:ts});
+    state.handover.unshift({id:uid(),name:name,shift:shift,text:text,ts:ts,date:iso(d)});
     if(state.handover.length>60)state.handover=state.handover.slice(0,60);
     sset("handover",JSON.stringify(state.handover)); if(name)psetLS("myname",name);
     document.getElementById("hoText").value=""; renderHandover();
