@@ -15,6 +15,7 @@
     --line:#DCDDD5; --line-strong:#C7C9BF;
     --am:#B0781E; --am-soft:#F4E9D4; --pm:#2E4374; --pm-soft:#E0E4EF;
     --sit:#2F6E5B; --sit-soft:#DCEAE3;
+    --place:#3E7D44; --place-soft:#DEEBDD;
     --sch:#5A3E8C; --sch-soft:#E7E0F1;
     --done:#4C7A54; --danger:#A6483C;
     --radius:14px;
@@ -44,7 +45,7 @@
   .tl-ticks { display:flex; justify-content:space-between; margin-top:5px; }
   .tl-ticks span { font-family:var(--mono); font-size:10px; color:var(--muted); }
 
-  .modeswitch { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:var(--card); border:1px solid var(--line-strong); border-radius:11px; padding:4px; margin:18px 0 4px; }
+  .modeswitch { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; background:var(--card); border:1px solid var(--line-strong); border-radius:11px; padding:4px; margin:18px 0 4px; }
   .modeswitch button { appearance:none; border:0; background:transparent; cursor:pointer; font-family:var(--sans); font-size:14px; font-weight:700; color:var(--muted); padding:9px 0; border-radius:8px; transition:background .12s ease,color .12s ease; }
   .modeswitch button small { display:block; font-family:var(--mono); font-weight:500; font-size:9px; letter-spacing:.06em; margin-top:1px; opacity:.8; }
   .modeswitch button[aria-selected="true"] { background:var(--ink); color:var(--paper); }
@@ -127,6 +128,18 @@
   .sit-catdel { appearance:none; border:0; background:transparent; color:var(--danger); font-family:var(--sans); font-size:12px; font-weight:700; cursor:pointer; align-self:flex-end; padding:2px 2px 0; }
   .sit-add { display:flex; align-items:center; justify-content:center; border:1px dashed var(--line-strong); background:transparent; color:var(--sit); font-family:var(--sans); font-weight:700; font-size:14px; cursor:pointer; min-height:56px; }
   .sit-add:hover { border-color:var(--sit); background:var(--sit-soft); }
+  #placePicker .sit-card:hover { border-color:var(--place); }
+  #placePicker .sit-card[aria-selected="true"] { background:var(--place); border-color:var(--place); }
+  #placePicker .sit-card[aria-selected="true"] .sh { color:#D6E6D9; }
+  .place .p-dot { background:var(--place); }
+  .place .stepno { color:var(--place); background:var(--place-soft); }
+  .place .addbtn { background:var(--place); }
+  .place-catbtn:hover { border-color:var(--place); color:var(--place); }
+  .place-catbtn.active { background:var(--place); color:#fff; border-color:var(--place); }
+  .who-badge { flex:0 0 auto; align-self:center; font-size:12px; font-weight:700; color:var(--place); background:var(--place-soft); border-radius:20px; padding:2px 9px; white-space:nowrap; }
+  .who-in { flex:0 0 96px; width:96px; font-family:var(--sans); font-size:13px; border:1px solid var(--line-strong); border-radius:7px; padding:6px 8px; background:#fff; color:var(--ink); }
+  .who-in:focus-visible { outline:2px solid var(--place); outline-offset:1px; }
+  .p-room { font-family:var(--mono); font-size:12px; color:var(--muted); }
   .sit-card { appearance:none; text-align:left; border:1px solid var(--line-strong); background:var(--card); border-radius:11px; padding:11px 12px; cursor:pointer; font-family:var(--sans); color:var(--ink); transition:border-color .12s ease,background .12s ease; }
   .sit-card:hover { border-color:var(--sit); }
   .sit-card .st { display:block; font-size:14.5px; font-weight:700; }
@@ -299,9 +312,10 @@
   </header>
 
   <div class="modeswitch" role="tablist" aria-label="모드">
-    <button data-mode="day" aria-selected="true">요일별 <small>DAILY</small></button>
-    <button data-mode="sit" aria-selected="false">상황별 <small>SITUATION</small></button>
-    <button data-mode="sch" aria-selected="false">시간표 <small>SCHEDULE</small></button>
+    <button data-mode="day" aria-selected="true">요일별 <small>DAY</small></button>
+    <button data-mode="sit" aria-selected="false">상황별 <small>CASE</small></button>
+    <button data-mode="place" aria-selected="false">장소별 <small>ROOM</small></button>
+    <button data-mode="sch" aria-selected="false">시간표 <small>PLAN</small></button>
   </div>
 
   <div id="dayView">
@@ -320,6 +334,16 @@
     </div>
     <nav class="sit-picker" id="sitPicker" role="tablist" aria-label="상황 선택"></nav>
     <section class="panel sit" id="sitPanel"></section>
+  </div>
+
+  <div id="placeView" hidden>
+    <div class="sit-bar">
+      <span class="sit-bar-label">장소(실)를 골라 관리 매뉴얼을 확인하세요</span>
+      <span class="spacer"></span>
+      <button class="sit-catbtn place-catbtn" id="placeCatBtn">장소 편집</button>
+    </div>
+    <nav class="sit-picker" id="placePicker" role="tablist" aria-label="장소 선택"></nav>
+    <section class="panel place" id="placePanel"></section>
   </div>
 
   <div id="schView" hidden>
@@ -491,11 +515,21 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
   function seedWD(wd,sh){ var b=(sh==="am"?DEF_AM:DEF_PM).slice(),e=(DAY_EXTRA[wd]&&DAY_EXTRA[wd][sh])||[]; return b.concat(e).map(function(t){return {id:uid(),text:t};}); }
   function seedSit(id){ return (SIT_DEF[id]||[]).map(function(t){return {id:uid(),text:t};}); }
 
+  /* ================= places (실별 관리 매뉴얼) ================= */
+  var PLACE_LIST_DEF=[{id:"studio414",title:"사진 스튜디오",hint:"414호"}];
+  var PLACE_DEF={ studio414:[
+    {text:"배경지 훼손 시 교체",who:""},
+    {text:"재료·소모품 재고 확인 및 보고",who:"현돈쌤"},
+    {text:"기기 이상 여부 점검 및 보고",who:"현돈쌤"}
+  ]};
+  function seedPlace(id){ return (PLACE_DEF[id]||[]).map(function(t){return {id:uid(),text:t.text,who:t.who||""};}); }
+
   /* ---------- state ---------- */
   var state={
     mode:"day",
     active:todayIdx>=0?todayIdx:0, calY:2026, calM:7, calSel:null, calOpen:false, templates:{}, checks:{am:new Set(),pm:new Set()}, editing:{am:false,pm:false},
     situations:[], activeSit:null, sitTemplates:{}, sitChecks:{}, sitEditing:false, sitCatEdit:false,
+    places:[], activePlace:null, placeTemplates:{}, placeEditing:false, placeCatEdit:false,
     roster:[], schedule:{days:{},holidays:{}}, viewY:2026, viewM:7, rosterEdit:false,
     handover:[]
   };
@@ -505,6 +539,7 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
   function tkey(wd,sh){return "template:"+wd+":"+sh;}
   function ckey(sh){return "checks:"+activeIso()+":"+sh;}
   function skey(id){return "sit:"+id;}
+  function pkey(id){return "place:"+id;}
 
   /* ---------- load ---------- */
   // cache(원격 데이터) -> state 로 재구성. 없는 기본값은 batch에 모아 한 번에 시드
@@ -516,6 +551,10 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
     var seen={};
     state.situations.forEach(function(it){ seen[it.id]=1; var kk=skey(it.id),v=cache[kk],a=null; if(v){try{a=JSON.parse(v);}catch(e){}} if(!a){a=seedSit(it.id);batch[kk]=JSON.stringify(a);} state.sitTemplates[it.id]=a; if(!state.sitChecks[it.id])state.sitChecks[it.id]=new Set(); });
     if(!state.activeSit||!seen[state.activeSit]) state.activeSit=state.situations.length?state.situations[0].id:null;
+    var plv=cache["place_list"],pl=null; if(plv){try{pl=JSON.parse(plv);}catch(e){}} if(!pl){pl=PLACE_LIST_DEF.slice();batch["place_list"]=JSON.stringify(pl);} state.places=pl;
+    var pseen={};
+    state.places.forEach(function(it){ pseen[it.id]=1; var kk=pkey(it.id),v=cache[kk],a=null; if(v){try{a=JSON.parse(v);}catch(e){}} if(!a){a=seedPlace(it.id);batch[kk]=JSON.stringify(a);} state.placeTemplates[it.id]=a; });
+    if(!state.activePlace||!pseen[state.activePlace]) state.activePlace=state.places.length?state.places[0].id:null;
     var rv=cache["roster"],rj=null; if(rv){try{rj=JSON.parse(rv);}catch(e){}} if(!rj){rj=ROSTER_DEF.slice();batch["roster"]=JSON.stringify(rj);} state.roster=rj; buildRosterMap();
     var scv=cache["schedule"],sj=null; if(scv){try{sj=JSON.parse(scv);}catch(e){}} if(!sj){sj=SCHED_DEF;batch["schedule"]=JSON.stringify(sj);} state.schedule=sj; if(!state.schedule.days)state.schedule.days={}; if(!state.schedule.holidays)state.schedule.holidays={};
     var hv=cache["handover"],hj=[]; if(hv){try{hj=JSON.parse(hv);}catch(e){hj=[];}} state.handover=hj;
@@ -530,6 +569,8 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
     if(!state.editing.pm) renderShift("pm");
     if(!state.sitCatEdit && !state.sitEditing){ renderSitPicker(); renderSitPanel(); }
     else if(state.sitEditing){ renderSitPicker(); }
+    if(!state.placeCatEdit && !state.placeEditing){ renderPlacePicker(); renderPlacePanel(); }
+    else if(state.placeEditing){ renderPlacePicker(); }
     if(!modalOpen()) renderSchedule();
     renderHandover();
     if(state.calOpen) renderCalendar();
@@ -560,6 +601,7 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
       document.querySelectorAll(".modeswitch button").forEach(function(x){ x.setAttribute("aria-selected",x===b?"true":"false"); });
       document.getElementById("dayView").hidden=state.mode!=="day";
       document.getElementById("sitView").hidden=state.mode!=="sit";
+      document.getElementById("placeView").hidden=state.mode!=="place";
       document.getElementById("schView").hidden=state.mode!=="sch";
     });
   });
@@ -709,6 +751,72 @@ const REQUIRE_AUTH = false;  /* true로 바꾸면 익명 로그인 필수(콘솔
     this.textContent=state.sitCatEdit?"완료":"상황 편집";
     if(state.sitCatEdit) state.sitEditing=false;
     renderSitPicker(); renderSitPanel();
+  });
+
+  /* ---------- places (실별 관리 매뉴얼) ---------- */
+  function persistPlaceList(){ sset("place_list",JSON.stringify(state.places)); }
+  function renderPlacePicker(){
+    var w=document.getElementById("placePicker"); w.innerHTML="";
+    var editing=state.placeCatEdit;
+    state.places.forEach(function(s,i){
+      if(editing){
+        var d=document.createElement("div"); d.className="sit-card editing";
+        d.innerHTML='<input class="sit-in-title" data-i="'+i+'" value="'+esc(s.title)+'" placeholder="장소 이름" maxlength="24" />'+
+          '<input class="sit-in-hint" data-i="'+i+'" value="'+esc(s.hint||"")+'" placeholder="호실 (예: 414호)" maxlength="30" />'+
+          '<button class="sit-catdel" data-catdel="'+s.id+'">삭제</button>';
+        w.appendChild(d);
+      } else {
+        var b=document.createElement("button"); b.className="sit-card"; b.setAttribute("role","tab"); b.setAttribute("aria-selected",s.id===state.activePlace?"true":"false");
+        b.innerHTML='<span class="st">'+esc(s.title)+'</span><span class="sh">'+esc(s.hint||"")+'</span>';
+        b.addEventListener("click",function(){state.activePlace=s.id;state.placeEditing=false;renderPlacePicker();renderPlacePanel();});
+        w.appendChild(b);
+      }
+    });
+    if(editing){
+      var add=document.createElement("button"); add.className="sit-card sit-add"; add.textContent="＋ 장소 추가";
+      add.addEventListener("click",addPlace); w.appendChild(add);
+      w.querySelectorAll(".sit-in-title").forEach(function(inp){ inp.addEventListener("change",function(){ state.places[+inp.getAttribute("data-i")].title=inp.value.trim()||"이름 없음"; persistPlaceList(); }); });
+      w.querySelectorAll(".sit-in-hint").forEach(function(inp){ inp.addEventListener("change",function(){ state.places[+inp.getAttribute("data-i")].hint=inp.value.trim(); persistPlaceList(); }); });
+      w.querySelectorAll("[data-catdel]").forEach(function(bt){ bt.addEventListener("click",function(){ deletePlace(bt.getAttribute("data-catdel")); }); });
+    }
+  }
+  function addPlace(){ var id=uid(); state.places.push({id:id,title:"새 장소",hint:""}); state.placeTemplates[id]=[]; persistPlaceList(); sset(pkey(id),"[]"); state.activePlace=id; renderPlacePicker(); renderPlacePanel(); }
+  function deletePlace(id){
+    var s=state.places.filter(function(x){return x.id===id;})[0];
+    if(!confirm("‘"+(s?s.title:"이 장소")+"’ 관리 매뉴얼을 통째로 지울까요?")) return;
+    state.places=state.places.filter(function(x){return x.id!==id;});
+    delete state.placeTemplates[id]; sset(pkey(id),"[]"); persistPlaceList();
+    if(state.activePlace===id) state.activePlace=state.places.length?state.places[0].id:null;
+    renderPlacePicker(); renderPlacePanel();
+  }
+  function renderPlacePanel(){
+    var sec=document.getElementById("placePanel");
+    if(!state.activePlace||!state.places.length){ sec.innerHTML='<div class="empty">등록된 장소가 없어요. 위의 <b>장소 편집</b>에서 <b>＋ 장소 추가</b>로 만들어보세요.</div>'; return; }
+    var s=state.places.filter(function(x){return x.id===state.activePlace;})[0],items=state.placeTemplates[state.activePlace]||[],editing=state.placeEditing,h="";
+    h+='<div class="p-hd"><span class="p-dot"></span><span class="p-name">'+esc(s.title)+'</span><span class="p-room">'+esc(s.hint||"")+'</span><span class="spacer"></span><span class="count">'+items.length+'개</span><button class="editbtn'+(editing?" active":"")+'" data-edit>'+(editing?"완료":"편집")+'</button></div>';
+    if(items.length===0&&!editing){ h+='<div class="empty">관리 항목이 없어요. “편집”으로 추가하세요.</div>'; }
+    else{ h+='<ul class="tasks">'; items.forEach(function(t,idx){
+      if(editing){ h+='<li class="task" data-tid="'+t.id+'"><span class="grip">'+GRIP+'</span><span class="stepno">'+(idx+1)+'</span><input class="task-input" data-tid="'+t.id+'" value="'+esc(t.text)+'" placeholder="관리 항목" /><input class="who-in" data-who="'+t.id+'" value="'+esc(t.who||"")+'" placeholder="담당" /><button class="del" data-del="'+t.id+'" aria-label="삭제">✕</button></li>'; }
+      else{ h+='<li class="task"><span class="stepno">'+(idx+1)+'</span><span class="task-text">'+esc(t.text)+'</span>'+(t.who?'<span class="who-badge">→ '+esc(t.who)+'</span>':'')+'</li>'; }
+    }); h+='</ul>'; }
+    if(editing){ h+='<div class="addrow"><input class="add-input" data-add placeholder="새 관리 항목 입력 후 Enter" /><button class="addbtn" data-addbtn>추가</button></div>'; }
+    sec.innerHTML=h; bindPlace(sec);
+  }
+  function bindPlace(sec){
+    var id=state.activePlace;
+    if(state.placeEditing){ var _ul=sec.querySelector("ul.tasks"); if(_ul) enableDragReorder(_ul,function(order){ saveInlinePlace(sec); var map={}; state.placeTemplates[id].forEach(function(t){map[t.id]=t;}); state.placeTemplates[id]=order.map(function(x){return map[x];}).filter(Boolean); sset(pkey(id),JSON.stringify(state.placeTemplates[id])); renderPlacePanel(); }); }
+    var ed=sec.querySelector("[data-edit]"); if(ed) ed.addEventListener("click",function(){ if(state.placeEditing)saveInlinePlace(sec); state.placeEditing=!state.placeEditing; renderPlacePanel(); });
+    sec.querySelectorAll("[data-del]").forEach(function(b){ b.addEventListener("click",function(){ saveInlinePlace(sec); var tid=b.getAttribute("data-del"); state.placeTemplates[id]=state.placeTemplates[id].filter(function(t){return t.id!==tid;}); sset(pkey(id),JSON.stringify(state.placeTemplates[id])); renderPlacePanel(); }); });
+    var ai=sec.querySelector("[data-add]"),ab=sec.querySelector("[data-addbtn]");
+    if(ai){ var add=function(){ var v=ai.value.trim(); if(!v)return; saveInlinePlace(sec); state.placeTemplates[id].push({id:uid(),text:v,who:""}); sset(pkey(id),JSON.stringify(state.placeTemplates[id])); renderPlacePanel(); var g=document.querySelector('#placePanel [data-add]'); if(g)g.focus(); }; ab.addEventListener("click",add); ai.addEventListener("keydown",function(e){if(e.key==="Enter")add();}); }
+  }
+  function saveInlinePlace(sec){ var id=state.activePlace,tmap={},wmap={},ch=false; sec.querySelectorAll(".task-input").forEach(function(i){tmap[i.getAttribute("data-tid")]=i.value.trim();}); sec.querySelectorAll(".who-in").forEach(function(i){wmap[i.getAttribute("data-who")]=i.value.trim();}); state.placeTemplates[id].forEach(function(t){ if(tmap[t.id]!==undefined&&tmap[t.id]!==""&&tmap[t.id]!==t.text){t.text=tmap[t.id];ch=true;} if(wmap[t.id]!==undefined&&wmap[t.id]!==t.who){t.who=wmap[t.id];ch=true;} }); if(ch)sset(pkey(id),JSON.stringify(state.placeTemplates[id])); }
+  document.getElementById("placeCatBtn").addEventListener("click",function(){
+    state.placeCatEdit=!state.placeCatEdit;
+    this.classList.toggle("active",state.placeCatEdit);
+    this.textContent=state.placeCatEdit?"완료":"장소 편집";
+    if(state.placeCatEdit) state.placeEditing=false;
+    renderPlacePicker(); renderPlacePanel();
   });
 
   /* ---------- schedule ---------- */
