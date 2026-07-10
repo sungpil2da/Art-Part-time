@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>근로 · 조형대학 근로 데스크</title>
 <meta name="theme-color" content="#2B4EA0" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%232B4EA0'/%3E%3Ctext x='32' y='43' font-family='sans-serif' font-size='25' font-weight='700' fill='white' text-anchor='middle'%3E근로%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232B4EA0'/%3E%3Cg fill='white' font-family='sans-serif' font-weight='700' font-size='22' text-anchor='middle'%3E%3Ctext x='32' y='30'%3E조형%3C/text%3E%3Ctext x='32' y='55'%3E대학%3C/text%3E%3C/g%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -67,7 +67,8 @@
   .dn-today:disabled { cursor:default; }
   .hd-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
   .brand { display:flex; align-items:center; gap:12px; }
-  .logo { flex:0 0 auto; width:48px; height:48px; border-radius:14px; background:linear-gradient(150deg,#3E74D8 0%,#2B4EA0 55%,#213C82 100%); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--sans); font-weight:800; font-size:17px; letter-spacing:-.02em; box-shadow:0 5px 14px rgba(33,60,130,.34); }
+  .logo { flex:0 0 auto; width:48px; height:48px; border-radius:14px; background:linear-gradient(150deg,#3E74D8 0%,#2B4EA0 55%,#213C82 100%); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; font-family:var(--sans); font-weight:800; font-size:14.5px; line-height:1.02; letter-spacing:-.03em; box-shadow:0 5px 14px rgba(33,60,130,.34); }
+  .logo span { display:block; }
   .brand .title { color:#243C82; }
   .calbtn { appearance:none; display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line-strong); background:var(--card); border-radius:10px; padding:7px 11px; cursor:pointer; color:var(--muted); font-family:var(--sans); font-size:12.5px; font-weight:700; flex:0 0 auto; margin-top:4px; }
   .calbtn:hover { border-color:var(--sch); color:var(--sch); }
@@ -355,7 +356,7 @@
   <header class="hd">
     <div class="hd-row">
       <div class="brand">
-        <div class="logo" aria-hidden="true">근로</div>
+        <div class="logo" aria-hidden="true"><span>조형</span><span>대학</span></div>
         <div>
           <p class="kicker">조형대학 · 근로학생 데스크</p>
           <h1 class="title">근로 데스크</h1>
